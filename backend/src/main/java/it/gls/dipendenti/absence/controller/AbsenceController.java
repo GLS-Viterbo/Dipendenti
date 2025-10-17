@@ -87,6 +87,13 @@ public class AbsenceController {
         return ResponseEntity.ok(absenceService.getEmployeeAbsences(employeeId));
     }
 
+    @GetMapping("/detailed")
+    public ResponseEntity<List<AbsenceService.DetailedAbsence>> getDetailedAbsencesInRange(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ResponseEntity.ok(absenceService.getDetailedAbsencesByDateRange(startDate, endDate));
+    }
+
     @GetMapping("")
     public ResponseEntity<List<Absence>> getAbsencesInRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,

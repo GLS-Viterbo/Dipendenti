@@ -102,17 +102,16 @@ public class AbsenceRepository {
      */
     public List<Absence> findByEmployeeIdAndDateRange(Long employeeId,
                                                       LocalDate startDate,
-                                                      LocalDate endDate,
-                                                      ZoneId zoneId) {
+                                                      LocalDate endDate) {
         String sql = """
-                SELECT * FROM absence
-                WHERE employee_id = ?
-                AND deleted = false
-                AND (start_date AT TIME ZONE 'UTC' AT TIME ZONE ?) <= ?
-                AND (end_date   AT TIME ZONE 'UTC' AT TIME ZONE ?) >= ?
-                ORDER BY start_date DESC
-                """;
-        return jdbcTemplate.query(sql, rowMapper, employeeId, zoneId.getId(), endDate, zoneId.getId(), startDate);
+            SELECT * FROM absence
+            WHERE employee_id = ?
+            AND deleted = false
+            AND start_date <= ?
+            AND end_date >= ?
+            ORDER BY start_date DESC
+            """;
+        return jdbcTemplate.query(sql, rowMapper, employeeId, endDate, startDate);
     }
 
     /**
@@ -148,15 +147,15 @@ public class AbsenceRepository {
      * @param endDate end date of the range
      * @return list of absences
      */
-    public List<Absence> findByDateRange(LocalDate startDate, LocalDate endDate, ZoneId zoneId) {
+    public List<Absence> findByDateRange(LocalDate startDate, LocalDate endDate) {
         String sql = """
-                SELECT * FROM absence
-                WHERE deleted = false
-                AND (start_date AT TIME ZONE 'UTC' AT TIME ZONE ?) <= ?
-                AND (end_date AT TIME ZONE 'UTC' AT TIME ZONE ?) >= ?
-                ORDER BY start_date DESC
-                """;
-        return jdbcTemplate.query(sql, rowMapper, zoneId, endDate, zoneId, startDate);
+            SELECT * FROM absence
+            WHERE deleted = false
+            AND start_date <= ?
+            AND end_date >= ?
+            ORDER BY start_date DESC
+            """;
+        return jdbcTemplate.query(sql, rowMapper, endDate, startDate);
     }
 
 
@@ -219,38 +218,31 @@ public class AbsenceRepository {
      * Get number of approved absences today
      * @return approved absences of today
      */
-    public Long getTodayCount(ZoneId zoneId) {
+    public Long getTodayCount() {
         String sql = """
-        SELECT COUNT(DISTINCT employee_id) AS approved_absences_today
-        FROM absence
-        WHERE deleted = FALSE
-          AND status = 'APPROVED'
-          AND DATE(start_date AT TIME ZONE 'UTC' AT TIME ZONE ?) <= ?
-          AND DATE(end_date   AT TIME ZONE 'UTC' AT TIME ZONE ?) >= ?;
-        """;
-
-        LocalDate today = LocalDate.now(zoneId);
-        return jdbcTemplate.queryForObject(
-                sql,
-                Long.class,
-                zoneId.getId(), today,
-                zoneId.getId(), today
-        );
+            SELECT COUNT(DISTINCT employee_id) AS approved_absences_today
+            FROM absence
+            WHERE deleted = FALSE
+              AND status = 'APPROVED'
+              AND start_date <= CURRENT_DATE
+              AND end_date >= CURRENT_DATE;
+            """;
+        return jdbcTemplate.queryForObject(sql, Long.class);
     }
 
     /**
      * Get the number of future absences to approve
      * @return absences to approve
      */
-    public Long getToApproveCount(ZoneId zoneid) {
+    public Long getToApproveCount() {
         String sql = """
-                SELECT COUNT(employee_id) as to_approve
-                FROM absence
-                WHERE deleted = FALSE
-                    AND DATE(start_date AT TIME ZONE 'UTC' AT TIME ZONE ?) >= ?
-                    AND status = 'PENDING'
-                """;
-        return jdbcTemplate.queryForObject(sql, Long.class, zoneid.getId(), LocalDate.now(zoneid));
+            SELECT COUNT(employee_id) as to_approve
+            FROM absence
+            WHERE deleted = FALSE
+                AND start_date >= CURRENT_DATE
+                AND status = 'PENDING'
+            """;
+        return jdbcTemplate.queryForObject(sql, Long.class);
     }
 
     /**
@@ -261,18 +253,19 @@ public class AbsenceRepository {
      * @param excludeId optional absence id to exclude from check (for updates)
      * @return true if overlapping absences exist
      */
-    public boolean hasOverlappingAbsences(Long employeeId, LocalDate startDate, LocalDate endDate, Long excludeId, ZoneId zoneId) {
+    public boolean hasOverlappingAbsences(Long employeeId, LocalDate startDate,
+                                          LocalDate endDate, Long excludeId) {
         String sql = """
-                SELECT COUNT(*) FROM absence
-                WHERE employee_id = ?
-                AND deleted = false
-                AND status != 'REJECTED'
-                AND id != ?
-                AND DATE(start_date AT TIME ZONE 'UTC' AT TIME ZONE ?) <= ?
-                AND DATE(end_date AT TIME ZONE 'UTC' AT TIME ZONE ?) >= ?
-                """;
+            SELECT COUNT(*) FROM absence
+            WHERE employee_id = ?
+            AND deleted = false
+            AND status != 'REJECTED'
+            AND id != ?
+            AND start_date <= ?
+            AND end_date >= ?
+            """;
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, employeeId,
-                excludeId != null ? excludeId : -1L, zoneId.getId(), endDate, zoneId.getId(), startDate);
+                excludeId != null ? excludeId : -1L, endDate, startDate);
         return count != null && count > 0;
     }
 

@@ -77,15 +77,15 @@ public class AccessRepository {
     // Based on previous access return the type of the next
     public AccessType getNextType(Long employeeId, Instant now) {
         String sql = """
-            SELECT type
-            FROM access_logs
-            WHERE employee_id = ?
-              AND DATE(timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Rome') = 
-                  DATE(? AT TIME ZONE 'Europe/Rome')
-              AND deleted = FALSE
-            ORDER BY timestamp DESC
-            LIMIT 1
-        """;
+        SELECT type
+        FROM access_logs
+        WHERE employee_id = ?
+          AND DATE(timestamp AT TIME ZONE 'Europe/Rome') = 
+              DATE(? AT TIME ZONE 'Europe/Rome')
+          AND deleted = FALSE
+        ORDER BY timestamp DESC
+        LIMIT 1
+    """;
 
         try {
             String lastType = jdbcTemplate.queryForObject(
@@ -94,15 +94,8 @@ public class AccessRepository {
                     employeeId,
                     Timestamp.from(now)
             );
-
-            if ("IN".equalsIgnoreCase(lastType)) {
-                return AccessType.OUT;
-            } else {
-                return AccessType.IN;
-            }
-
+            return "IN".equalsIgnoreCase(lastType) ? AccessType.OUT : AccessType.IN;
         } catch (EmptyResultDataAccessException e) {
-            // In case of first record of the day
             return AccessType.IN;
         }
     }
@@ -138,14 +131,14 @@ public class AccessRepository {
      * @param date the local date in the target timezone
      * @param zoneId the timezone to use for date calculation
      */
-    public List<AccessLog> getLogsByDate(LocalDate date, ZoneId zoneId) {
+    public List<AccessLog> getLogsByDate(LocalDate date) {
         String sql = """
-            SELECT id, employee_id, card_id, timestamp, type, modified, modified_at, deleted
-            FROM access_logs
-            WHERE DATE(timestamp AT TIME ZONE 'UTC' AT TIME ZONE ?) = ?
-            ORDER BY timestamp DESC
-            """;
-        return jdbcTemplate.query(sql, rowMapper, zoneId.getId(), date);
+        SELECT id, employee_id, card_id, timestamp, type, modified, modified_at, deleted
+        FROM access_logs
+        WHERE DATE(timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Rome') = ?
+        ORDER BY timestamp DESC
+        """;
+        return jdbcTemplate.query(sql, rowMapper, date);
     }
 
 
@@ -155,16 +148,16 @@ public class AccessRepository {
      * @param date the date to check
      * @return list of access logs for that day
      */
-    public List<AccessLog> getLogsByEmployeeAndDate(Long employeeId, LocalDate date, ZoneId zoneId ) {
+    public List<AccessLog> getLogsByEmployeeAndDate(Long employeeId, LocalDate date) {
         String sql = """
-            SELECT id, employee_id, card_id, timestamp, type, modified, modified_at, deleted
-            FROM access_logs
-            WHERE employee_id = ?
-              AND DATE(timestamp AT TIME ZONE 'UTC' AT TIME ZONE ?) = ?
-              AND deleted = FALSE
-            ORDER BY timestamp DESC
-            """;
-        return jdbcTemplate.query(sql, rowMapper, employeeId, zoneId.getId(), date);
+        SELECT id, employee_id, card_id, timestamp, type, modified, modified_at, deleted
+        FROM access_logs
+        WHERE employee_id = ?
+          AND DATE(timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Rome') = ?
+          AND deleted = FALSE
+        ORDER BY timestamp DESC
+        """;
+        return jdbcTemplate.query(sql, rowMapper, employeeId, date);
     }
 
     /**
@@ -174,18 +167,18 @@ public class AccessRepository {
      * @param endDate end date
      * @return list of dates with access logs
      */
-    public List<LocalDate> getDistinctLogDates(Long employeeId, LocalDate startDate, LocalDate endDate, ZoneId zoneId) {
+    public List<LocalDate> getDistinctLogDates(Long employeeId, LocalDate startDate, LocalDate endDate) {
         String sql = """
-            SELECT DISTINCT DATE(timestamp AT TIME ZONE 'UTC' AT TIME ZONE ?) as log_date
-            FROM access_logs
-            WHERE employee_id = ?
-              AND DATE(timestamp AT TIME ZONE 'UTC' AT TIME ZONE ?) BETWEEN ? AND ?
-              AND deleted = FALSE
-            ORDER BY log_date
-            """;
+        SELECT DISTINCT DATE(timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Rome') as log_date
+        FROM access_logs
+        WHERE employee_id = ?
+          AND DATE(timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Rome') BETWEEN ? AND ?
+          AND deleted = FALSE
+        ORDER BY log_date
+        """;
         return jdbcTemplate.query(sql,
                 (rs, rowNum) -> rs.getDate("log_date").toLocalDate(),
-                zoneId.getId(), employeeId, zoneId.getId(), startDate, endDate);
+                employeeId, startDate, endDate);
     }
 
     /**

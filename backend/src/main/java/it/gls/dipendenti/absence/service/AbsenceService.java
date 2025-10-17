@@ -16,10 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.util.*;
 
 @Service
@@ -140,7 +137,7 @@ public class AbsenceService {
                 absence.hoursCount(),
                 AbsenceStatus.APPROVED,
                 absence.note(),
-                ZonedDateTime.now(),
+                Instant.now(),  // Cambiato da ZonedDateTime
                 false
         );
 
@@ -148,10 +145,7 @@ public class AbsenceService {
         // TODO: Verificare giorni festivi
 
         Absence saved = absenceRepository.save(approvedAbsence);
-
-        // Aggiorna il saldo solo per VACATION e ROL
         updateBalanceForAbsence(saved, false);
-
         return saved;
     }
 
@@ -286,12 +280,7 @@ public class AbsenceService {
         return absenceRepository.findByDateRange(startDate, endDate);
     }
 
-    /**
-     * Obtains all detailed absences in a date range
-     * @param startDate start date
-     * @param endDate end date
-     * @return list of absences
-     */
+    // Linea ~224 - getDetailedAbsencesByDateRange - correzione sintassi
     public List<DetailedAbsence> getDetailedAbsencesByDateRange(LocalDate startDate, LocalDate endDate) {
         List<Absence> absences = absenceRepository.findByDateRange(startDate, endDate);
         List<DetailedAbsence> output = new ArrayList<>();
@@ -309,12 +298,11 @@ public class AbsenceService {
                     abs.hoursCount(),
                     abs.status().name(),
                     abs.note(),
-                    abs.createdAt(),
+                    Timestamp.from(abs.createdAt()),  // Aggiungi conversione
                     abs.deleted()
-
-            ))
+            ));
         }
-
+        return output;  // Mancava questo return!
     }
 
 

@@ -77,17 +77,8 @@ public class AccessService {
         AccessType newType = accessRepository.getNextType(assignment.employeeId(), now);
 
         return accessRepository.addLog(
-                new AccessLog(
-                        null,
-                        assignment.employeeId(),
-                        card.id(),
-                        now,
-                        newType,
-                        false,
-                        null,
-                        false
-
-                )
+                new AccessLog(null, assignment.employeeId(), card.id(),
+                        now, newType, false, null, false)
         );
 
 
@@ -170,13 +161,12 @@ public class AccessService {
     }
 
     public List<AccessLog> getLogsForDate(LocalDate date) {
-        if (date == null)
-            throw new IllegalArgumentException("Date is null");
-        return accessRepository.getLogsByDate(date, TimeZoneConstants.COMPANY_ZONE);
+        if (date == null) throw new IllegalArgumentException("Date is null");
+        return accessRepository.getLogsByDate(date);
     }
 
     public List<DetailedAccessLog> getDetailedLogsForDate(LocalDate date) {
-        List<AccessLog> logs = accessRepository.getLogsByDate(date, TimeZoneConstants.COMPANY_ZONE);
+        List<AccessLog> logs = accessRepository.getLogsByDate(date);
         List<DetailedAccessLog> detailedLogs = new ArrayList<>();
         for (AccessLog log : logs) {
             Employee emp = employeeRepository.findById(log.employeeId()).orElse(null);
@@ -200,11 +190,9 @@ public class AccessService {
     }
 
     public List<AccessLog> getEmployeeLogsForDate(Long employeeId, LocalDate date) {
-        if (date == null)
-            throw new IllegalArgumentException("Date is null");
-        if (employeeId == null)
-            throw new IllegalArgumentException("Employee id is null");
-        return accessRepository.getLogsByEmployeeAndDate(employeeId, date, TimeZoneConstants.COMPANY_ZONE);
+        if (date == null) throw new IllegalArgumentException("Date is null");
+        if (employeeId == null) throw new IllegalArgumentException("Employee id is null");
+        return accessRepository.getLogsByEmployeeAndDate(employeeId, date);
     }
 
     public List<LocalDate> getWorkingDaysInRange(Long employeeId, LocalDate startDate, LocalDate endDate) {
@@ -214,7 +202,7 @@ public class AccessService {
             throw new IllegalArgumentException("End date is null");
         if (employeeId == null)
             throw new IllegalArgumentException("Employee id is null");
-        return accessRepository.getDistinctLogDates(employeeId, startDate, endDate, TimeZoneConstants.COMPANY_ZONE);
+        return accessRepository.getDistinctLogDates(employeeId, startDate, endDate);
     }
 
     // ======== ANOMALIES ===========
